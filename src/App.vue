@@ -1,7 +1,12 @@
 <template>
   <div id="app">
+    <!-- <img src="./assets/melkmeisje.jpg" alt=""/> -->
     <h1>Anka Image Cropper and (optionally) Uploader</h1>
-    <AnkaCropper :options="{skin: 'dark'}"></AnkaCropper>
+    <AnkaCropper
+        :options="{}"
+        @cropper-error="debug"
+        @file-selected="debug"
+        ></AnkaCropper>
   </div>
 </template>
 
@@ -9,14 +14,21 @@
 import AnkaCropper from './components/AnkaCropper.vue'
 
 export default {
-  name: 'app',
-  components: {AnkaCropper}
+    name: 'app',
+    methods: {
+        debug (ev) {
+            console.log('***********************')
+            console.log(ev)
+            console.log('***********************')
+        }
+    },
+    components: {AnkaCropper}
 }
 </script>
 
 <style>
 body {
-    background: #131314;
+    background: #000;
     color: #eee;}
 #app {
   font-family: 'Avenir', Helvetica, Arial, sans-serif;
