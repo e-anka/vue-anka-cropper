@@ -7,23 +7,23 @@
                 <button class="ankaCropper__selectButton" @click="triggerInput">{{opts.selectButtonLabel}}</button>
             </div>
             <div v-if="file" class="ankaCropper__navigation">
-                <a href="#" @click.prevent="triggerInput" title="Upload a new image">
+                <a href="#" @click.prevent="triggerInput" title="Upload a new image" class="ankaCropper__navButton">
                    <img :src="require('../assets/feather/' + opts.skin + '/upload.svg')" alt="upload icon" width="16" height="16"/>
                 </a>
-                <a href="#" @click.prevent title="Rotate clockwise">
+                <a href="#" @click.prevent title="Rotate clockwise" class="ankaCropper__navButton">
                    <img :src="require('../assets/feather/' + opts.skin + '/rotate-cw.svg')" alt="rotate clockwise icon" width="16" height="16"/>
                 </a>
-                <a href="#" @click.prevent title="Flip horizontally">
+                <a href="#" @click.prevent title="Flip horizontally" class="ankaCropper__navButton">
                    <img :src="require('../assets/feather/' + opts.skin + '/flip-horizontal.svg')" alt="flip horizontal icon" width="16" height="16"/>
                 </a>
-                <a href="#" @click.prevent title="Flip vertically">
+                <a href="#" @click.prevent title="Flip vertically" class="ankaCropper__navButton">
                    <img :src="require('../assets/feather/' + opts.skin + '/flip-vertical.svg')" alt="flip vertical icon" width="16" height="16"/>
                 </a>
-                <a href="#" @click.prevent="file = false" title="Cancel">
+                <a href="#" @click.prevent="cancelCrop" title="Cancel" class="ankaCropper__navButton">
                    <img :src="require('../assets/feather/' + opts.skin + '/x-circle.svg')" alt="cancel icon" width="16" height="16"/>
                 </a>
-                <a href="#" @click.prevent title="Save">
-                   <img :src="require('../assets/feather/' + opts.skin + '/save.svg')" alt="save icon" width="16" height="16"/>
+                <a href="#" @click.prevent title="Save" class="ankaCropper__saveButton">
+                   <img :src="require('../assets/feather/' + opts.skin + '/save.svg')" alt="save icon" width="16" height="16"/> Save
                 </a>
             </div>
             <div v-if="file" class="ankaCropper__mainArea">
@@ -32,9 +32,16 @@
                         ref="canvas"
                         :width="canvasWidth"
                         :height="canvasHeight"
-                        style="background: #ccc;"></canvas>
+                        style="background: #ccc;"
+                        @mousemove="moveMouse"
+                        @mousedown="startDrag"
+                        @mouseup="stopDrag"
+                        @mouseleave="stopDrag"
+                        ></canvas>
                 </div>
-                <div :style="{background: '#d14423', width: previewWidth + 'px', height: cropperHeight + 'px', float: 'left'}"></div>
+                <div v-if="opts.showPreview" class="ankaCropper__previewArea" :style="{background: '#d14423', width: prevdivWidth + 'px', height: prevdivHeight + 'px', float: 'left'}">
+                    <div :style="{background: '#ff9d00', width: previewSize.w + 'px', height: previewSize.h + 'px'}"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -49,17 +56,17 @@ export default {
             canvas: false,
             ctx: false,
             defaultOptions: {
-                aspectRatio: 0.5, // false or number, always width / height, locks aspect ratio of cropper. It should equal to croppedWidth / croppedHeight (if they're not false), otherwise cropped image will be distorted,
-                cropArea: 'box', // box or circle for round selections. If circle, aspect ratio will be locked to 1
-                croppedHeight: false, // desired height of cropped image (or false)
-                croppedWidth: false, // desired width of cropped image (or false). If aspectRatio is not false, cropped width and height should match the aspect ratio (width / height), otherwise cropped image will be distorted
+                aspectRatio: 1.5, // false or number, always width / height, locks aspect ratio of cropper. It should equal to croppedWidth / croppedHeight (if they're not false), otherwise cropped image will be distorted,
+                cropArea: 'circle', // box or circle for round selections. If circle, aspect ratio will be locked to 1
+                croppedHeight: 500, // desired height of cropped image (or false)
+                croppedWidth: 500, // desired width of cropped image (or false). If aspectRatio is not false, cropped width and height should match the aspect ratio (width / height), otherwise cropped image will be distorted
                 cropperHeight: false,
                 dropareaMessage: 'Drop file here or use the button below.',
                 frameLineDash: [5,3], // dash pattern of the dashed line of the cropping frame
                 frameStrokeColor: 'rgba(255, 255, 255, 0.8)', // main color of the stroke of the cropping frame
                 handleFillColor: 'rgba(255, 255, 255, 0.2)',
-                handleHoverFillColor: 'red',
-                handleHoverStrokeColor: 'blue',
+                handleHoverFillColor: 'rgba(255, 255, 255, 0.4)',
+                handleHoverStrokeColor: 'rgba(255, 255, 255, 1)',
                 handleSize: 10, // size of the dragging handle in cropper
                 handleStrokeColor: 'rgba(255, 255, 255, 0.8)',
                 layoutBreakpoint: 950,
@@ -67,14 +74,21 @@ export default {
                 maxFileSize: 8000000,
                 overlayFill: 'rgba(0, 0, 0, 0.5)', // fill of the masking overlay
                 selectButtonLabel: 'Select Files',
+                showPreview: true,
                 skin: 'dark'
             },
+            dragged: false,
             fullWidth: 500, // width of whole ui
             file: false,
             h: 100,
             image: false,
             imageWidth: 0,
             imageHeight: 0,
+            minW: 8, // minimum dimensions of the cropping window
+            minH: 8, // minimum dimensions of the cropping window
+            mx: 0,
+            my: 0,
+            over: false,
             loadingImage: false,
             rotation: 0,
             w: 100,
@@ -111,8 +125,16 @@ export default {
         },
         cropperWidth () {
             let mw = this.fullWidth - 24
-            if (this.fullWidth <= this.opts.layoutBreakpoint) return mw
+            if (this.fullWidth <= this.opts.layoutBreakpoint || !this.opts.showPreview) return mw
             return Math.floor(0.65 * mw)
+        },
+        cx () {
+            let box = this.canvas.getBoundingClientRect()
+            return this.mx - box.left
+        },
+        cy () {
+            let box = this.canvas.getBoundingClientRect()
+            return this.my - box.top
         },
         imageRatio () {
             if (!this.imageHeight) return 0
@@ -131,10 +153,52 @@ export default {
             if (opts.cropArea === 'circle') opts.aspectRatio = 1
             return opts
         },
-        previewWidth () {
+        prevdivHeight () {
+            if (this.fullWidth > this.opts.layoutBreakpoint) return this.cropperHeight
+            if (!this.opts.aspectRatio) return this.canvasHeight
+            return this.prevdivWidth / this.opts.aspectRatio
+        },
+        prevdivWidth () {
             let mw = this.fullWidth - 24
             if (this.fullWidth <= this.opts.layoutBreakpoint) return mw
             return Math.floor(0.35 * mw)
+        },
+        previewSize () {
+            let [dw, dh] = [this.prevdivWidth - 20, this.prevdivHeight - 20]
+            let pdratio = Math.round((dw / dh) * 1000) / 1000
+            let resratio = Math.round((this.resultWidth / this.resultHeight) * 1000) / 1000
+            console.log(pdratio, resratio)
+            let pw, ph
+            if (resratio > pdratio) {
+                pw = dw
+                ph = dw / resratio
+            } else {
+                ph = dh
+                pw = ph * resratio
+            }
+            return {w: Math.min(pw, this.resultWidth), h: Math.min(ph, this.resultHeight)}
+        },
+        resultWidth () {
+            let [ar, cw, ch] = [this.opts.aspectRatio, this.opts.croppedWidth, this.opts.croppedHeight]
+            let imageFactor = Math.round((this.imageWidth / this.canvasWidth) * 1000) / 1000
+            let ratio = ar ? ar : this.w / this.h
+            if (cw && !(!ar && ch)) { return cw }
+            if (!cw && !ch) { return Math.round(this.w * imageFactor) }
+            if (!cw && ch) { return Math.round(ch * ratio) }
+            let resultRatio = cw / ch
+            if (ratio >= resultRatio) { return cw }
+            return Math.round(ch * ratio)
+        },
+        resultHeight () {
+            let [ar, cw, ch] = [this.opts.aspectRatio, this.opts.croppedWidth, this.opts.croppedHeight]
+            let imageFactor = Math.round((this.imageHeight / this.canvasHeight) * 1000) / 1000
+            let ratio = ar ? ar : this.w / this.h
+            if (ch && !(!ar && cw)) { return ch }
+            if (!cw && !ch) { return Math.round(this.h * imageFactor) }
+            if (!ch && cw) { return Math.round(cw / ratio) }
+            let resultRatio = cw / ch
+            if (ratio <= resultRatio) { return ch }
+            return Math.round(cw / ratio)
         }
     },
     mounted () {
@@ -145,19 +209,27 @@ export default {
         window.removeEventListener('resize', this.getFullWidth)
     },
     methods: {
+        cancelCrop () {
+            let input = this.$refs.fileInput
+            input.type = ''
+            input.type = 'file'
+            this.file = false
+        },
         drawCanvas () {
             if (!this.ctx) { return }
             this.drawImageOnCanvas()
             this.drawOverlay()
-            this.drawMarkers(0, 0)
+            this.drawMarkers()
         },
         drawImageOnCanvas () {
             if (!this.image) { return }
             this.ctx.drawImage(this.image, 0, 0, this.canvasWidth, this.canvasHeight);
         },
-        drawMarkers (mouseX, mouseY) {
+        drawMarkers () {
+            let [mouseX, mouseY] = [this.cx, this.cy]
             let ctx = this.ctx
             this.canvas.style.cursor = 'default'
+            this.over = false
             // draw selection border
             ctx.beginPath()
             if (this.opts.cropArea !== 'circle') {
@@ -166,6 +238,7 @@ export default {
                 ctx.arc(this.x + this.w / 2, this.y + this.h / 2, this.w / 2, 0, 2 * Math.PI)
             }
             if (ctx.isPointInPath(mouseX, mouseY)) {
+                this.over = 'all'
                 this.canvas.style.cursor = 'move'
             }
             ctx.setLineDash(this.opts.frameLineDash)
@@ -184,6 +257,7 @@ export default {
                     ctx.fillStyle = this.opts.handleHoverFillColor
                     ctx.strokeStyle = this.opts.handleHoverStrokeColor
                     this.canvas.style.cursor = p + '-resize'
+                    this.over = p
                 }
                 ctx.fill()
                 ctx.stroke()
@@ -244,9 +318,19 @@ export default {
             } while (Math.abs(bytes) >= thresh && u < units.length - 1)
             return bytes.toFixed(1) + ' ' + units[u]
         },
+        moveMouse (evt) {
+            let mx = evt.clientX
+            let my = evt.clientY
+            let dx = mx - this.mx
+            let dy = my - this.my
+            if (this.dragged) { this.updateCoords(dx, dy) }
+            this.mx = mx
+            this.my = my
+            this.drawCanvas()
+        },
         selectFile (evt) {
             let file = evt.currentTarget.files[0]
-            this.useFile(file)
+            if (file) { this.useFile(file) }
         },
         startCanvas () {
             if (this.image) {
@@ -258,7 +342,6 @@ export default {
                     this.h = Math.round(this.w / ar)
                 } else {
                     this.h = Math.round(this.canvasHeight / 2)
-                    console.log('calcuc ', this.canvasHeight, this.h, ar)
                     this.w = Math.round(this.h * ar)
                 }
                 this.x = Math.round((this.canvasWidth - this.w) / 2)
@@ -269,9 +352,100 @@ export default {
                 this.ctx = false
             }
         },
+        startDrag () {
+            this.dragged = this.over
+        },
+        stopDrag () {
+            this.dragged = false
+        },
         triggerInput () {
             let input = this.$refs.fileInput
             input.click()
+        },
+        updateCoords (dx, dy) {
+            let nx = this.x
+            let ny = this.y
+            let nw = this.w
+            let nh = this.h
+            let ar = this.opts.aspectRatio
+            switch (this.dragged) {
+            case 'all':
+                nx = this.x + dx
+                ny = this.y + dy
+                break
+            case 'nw':
+                nx = this.x + dx
+                ny = this.y + dy
+                nw = this.w - dx
+                nh = this.h - dy
+                break
+            case 'ne':
+                ny = this.y + dy
+                nw = this.w + dx
+                nh = this.h - dy
+                break
+            case 'sw':
+                nx = this.x + dx
+                nw = this.w - dx
+                nh = this.h + dy
+                break
+            case 'se':
+                nw = this.w + dx
+                nh = this.h + dy
+                break
+            }
+            // keep aspect ratio
+            if (ar) {
+                nh = nw / ar
+            }
+            // keep minimal dimensions
+            if (nw < this.minW || nh < this.minH) {
+                if (ar && ar > 1) {
+                    nh = this.minH
+                    nw = nh * ar
+                } else if (ar && ar < 1) {
+                    nw = this.minW
+                    nh = nw / ar
+                } else {
+                    if (nw < this.minW) { nw = this.minW }
+                    if (nh < this.minH) { nh = this.minH }
+                }
+            }
+            // don't expand over canvas width
+            if (nw + nx > this.canvasWidth) {
+                nw = this.canvasWidth - nx
+                if (ar) { nh = nw / ar }
+                if (nw / ar < this.minH && ar && ar > 1) {
+                    nh = this.minH
+                    nw = nh * ar
+                    nx = this.canvasWidth - nw
+                }
+                if (nw < this.minW) {
+                    nw = this.minW
+                    nx = this.canvasWidth - nw
+                }
+            }
+            // don't expand over canvas height
+            if (nh + ny > this.canvasHeight) {
+                nh = this.canvasHeight - ny
+                if (ar) { nw = nh * ar }
+                if (nh * ar < this.minW && ar && ar < 1) {
+                    nw = this.minW
+                    nh = nw / ar
+                    ny = this.canvasHeight - nh
+                }
+                if (nh < this.minH) {
+                    nh = this.minH
+                    ny = this.canvasHeight - nh
+                }
+            }
+            // dont cross 0 borders
+            if (nx < 0) { nx = 0 }
+            if (ny < 0) { ny = 0 }
+            this.x = nx
+            this.y = ny
+            this.w = nw
+            this.h = nh
         },
         useFile (file) {
             if (this.allowedMimeTypes.indexOf(file.type) === -1) {
@@ -308,6 +482,8 @@ export default {
                     this.file = false
                     this.$emit('cropper-error', 'Image reading error' + error)
                 }
+                let input = this.$refs.fileInput
+                input.val = ''
                 img.src = evt.target.result
             }
             reader.onerror = (error) => {
@@ -332,6 +508,9 @@ export default {
         box-shadow: 0 0 20px rgba(0, 0, 0, 0.1), 3px 3px 5px rgba(0, 0, 0, 0.3);
         position: relative;
         overflow: hidden;
+        a {
+            text-decoration: none;
+        }
     }
 
     .ankaCropper__droparea {
@@ -345,18 +524,33 @@ export default {
         padding: 10px 20px;
         margin: 10px;
         border-radius: 3px;
+        cursor: pointer;
+        transition: all 0.3s;
     }
 
     .ankaCropper__navigation {
         padding: 12px;
         border-radius: 3px;
         box-shadow: 0 2px 3px rgba(0, 0, 0, 0.15);
-        a {
-            display: inline-block;
-            padding: 8px;
-            width: 16px; height: 16px;
-            margin-right: 10px;
-            box-shadow: 0 0 4px rgba(0, 0, 0, 0.15), 1px 1px 2px rgba(0, 0, 0, 0.25);
+    }
+
+    .ankaCropper__navButton {
+        display: inline-block;
+        padding: 8px;
+        width: 16px; height: 16px;
+        margin-right: 10px;
+        box-shadow: 0 0 4px rgba(0, 0, 0, 0.15), 1px 1px 2px rgba(0, 0, 0, 0.25);
+    }
+
+    .ankaCropper__saveButton {
+        float: right;
+        padding: 8px 20px;
+        display: inline-block;
+        height: 16px;
+        box-shadow: 0 0 4px rgba(0, 0, 0, 0.15), 1px 1px 2px rgba(0, 0, 0, 0.25);
+        font-size: 14px;
+        img {
+            vertical-align: bottom;
         }
     }
 
@@ -365,6 +559,12 @@ export default {
         box-sizing: border-box;
         overflow: hidden;
         text-align: center;
+    }
+
+    .ankaCropper__previewArea {
+        display: flex;
+        justify-content: center;
+        align-items: center;
     }
 
     /***************************/
@@ -376,15 +576,18 @@ export default {
         .ankaCropper__droparea {
             border: dashed 2px #367bb7;
         }
-        .ankaCropper__selectButton {
+        .ankaCropper__selectButton, .ankaCropper__saveButton {
             background: #1c6bd6;
             color: #fff;
+            &:hover {
+                background: #1b5bb2;
+            }
         }
         .ankaCropper__navigation {
             background: #e8f2fa;
-            a:hover {
-                background: #fff;
-            }
+        }
+        .ankaCropper__navButton:hover {
+            background: #fff;
         }
     }
     .ankaCropper.dark {
@@ -393,14 +596,19 @@ export default {
         .ankaCropper__droparea {
             border: dashed 2px #3e424b;
         }
-        .ankaCropper__selectButton {
+        .ankaCropper__selectButton, .ankaCropper__saveButton {
             background: #334f90;
             color: #fff;
+            &:hover {
+                background: #335dbe;
+            }
         }
         .ankaCropper__navigation {
             background: #1d2227;
-            a {background: #272c31;}
-            a:hover {
+        }
+        .ankaCropper__navButton {
+            background: #272c31;
+            &:hover {
                 background: #000;
             }
         }

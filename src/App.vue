@@ -3,10 +3,13 @@
     <!-- <img src="./assets/melkmeisje.jpg" alt=""/> -->
     <h1>Anka Image Cropper and (optionally) Uploader</h1>
     <AnkaCropper
-        :options="{}"
+        :options="{aspectRatio: ar, cropArea: 'box', croppedWidth: desiredWidth, croppedHeight: desiredHeight}"
         @cropper-error="debug"
         @file-selected="debug"
         ></AnkaCropper>
+     <div><label for="">Aspect ratio</label><input type="text" v-model.number="ar"></div>
+     <div><label for="">Desired Width</label><input type="text" v-model.number="desiredWidth"></div>
+     <div><label for="">Desired Height</label><input type="text" v-model.number="desiredHeight"></div>
   </div>
 </template>
 
@@ -15,6 +18,13 @@ import AnkaCropper from './components/AnkaCropper.vue'
 
 export default {
     name: 'app',
+    data () {
+        return {
+            ar: 1,
+            desiredWidth: 500,
+            desiredHeight: 500
+        }
+    },
     methods: {
         debug (ev) {
             console.log('***********************')
