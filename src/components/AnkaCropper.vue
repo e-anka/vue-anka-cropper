@@ -13,10 +13,10 @@
                 <a href="#" @click.prevent title="Rotate clockwise" class="ankaCropper__navButton">
                    <img :src="require('../assets/feather/' + opts.skin + '/rotate-cw.svg')" alt="rotate clockwise icon" width="16" height="16"/>
                 </a>
-                <a href="#" @click.prevent title="Flip horizontally" class="ankaCropper__navButton">
+                <a href="#" @click.prevent="fliph = !fliph; drawCanvas()" title="Flip horizontally" class="ankaCropper__navButton">
                    <img :src="require('../assets/feather/' + opts.skin + '/flip-horizontal.svg')" alt="flip horizontal icon" width="16" height="16"/>
                 </a>
-                <a href="#" @click.prevent title="Flip vertically" class="ankaCropper__navButton">
+                <a href="#" @click.prevent="flipv = !flipv; drawCanvas()" title="Flip vertically" class="ankaCropper__navButton">
                    <img :src="require('../assets/feather/' + opts.skin + '/flip-vertical.svg')" alt="flip vertical icon" width="16" height="16"/>
                 </a>
                 <a href="#" @click.prevent="cancelCrop" title="Cancel" class="ankaCropper__navButton">
@@ -80,6 +80,8 @@ export default {
             dragged: false,
             fullWidth: 500, // width of whole ui
             file: false,
+            fliph: false,
+            flipv: false,
             h: 100,
             image: false,
             imageWidth: 0,
@@ -120,6 +122,12 @@ export default {
             let ny = Math.round(this.y * scaleH)
             let nw = Math.round(this.w * scaleW)
             let nh = Math.round(this.h * scaleH)
+            if (this.fliph) {
+                nx = this.imageWidth - nx - nw
+            }
+            if (this.flipv) {
+                ny = this.imageHeight - ny - nh
+            }
             return {x: nx, y: ny, w: nw, h: nh}
         },
         cropperHeight () {
@@ -178,6 +186,15 @@ export default {
             canvas.width = this.previewSize.w
             canvas.height = this.previewSize.h
             let ctx = canvas.getContext('2d')
+            ctx.save()
+            if (this.fliph) {
+                ctx.translate(this.previewSize.w, 0);
+                ctx.scale(-1, 1)
+            }
+            if (this.flipv) {
+                ctx.translate(0, this.previewSize.h);
+                ctx.scale(1, -1)
+            }
             ctx.drawImage(
                 this.image,
                 this.cropData.x,
@@ -188,6 +205,7 @@ export default {
                 0,
                 canvas.width,
                 canvas.height)
+            ctx.restore()
             return canvas
         },
         previewImage () {
@@ -201,7 +219,6 @@ export default {
             let [dw, dh] = [this.prevdivWidth - 20, this.prevdivHeight - 20]
             let pdratio = Math.round((dw / dh) * 1000) / 1000
             let resratio = Math.round((this.resultWidth / this.resultHeight) * 1000) / 1000
-            console.log(pdratio, resratio)
             let pw, ph
             if (resratio > pdratio) {
                 pw = dw
@@ -257,7 +274,17 @@ export default {
         },
         drawImageOnCanvas () {
             if (!this.image) { return }
+            this.ctx.save()
+            if (this.fliph) {
+                this.ctx.translate(this.canvasWidth, 0);
+                this.ctx.scale(-1, 1)
+            }
+            if (this.flipv) {
+                this.ctx.translate(0, this.canvasHeight);
+                this.ctx.scale(1, -1)
+            }
             this.ctx.drawImage(this.image, 0, 0, this.canvasWidth, this.canvasHeight);
+            this.ctx.restore()
         },
         drawMarkers () {
             let [mouseX, mouseY] = [this.cx, this.cy]
