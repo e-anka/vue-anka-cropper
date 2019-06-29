@@ -1,13 +1,13 @@
 <template>
     <div class="vueAnkaCropper">
         <div class="ankaCropper" :class="[opts.skin]">
+           <input type="file" class="ankaCropper__fileInput" ref="fileInput" v-show="false" @change="selectFile"/>
             <div v-if="!file" class="ankaCropper__droparea" @drop.prevent="dropFile" @dragover.prevent>
-                <input type="file" class="ankaCropper__fileInput" ref="fileInput" v-show="false" @change="selectFile"/>
                 <div>{{opts.dropareaMessage}}</div>
                 <button class="ankaCropper__selectButton" @click="triggerInput">{{opts.selectButtonLabel}}</button>
             </div>
             <div v-if="file" class="ankaCropper__navigation">
-                <a href="#" @click.prevent title="Upload a new image">
+                <a href="#" @click.prevent="triggerInput" title="Upload a new image">
                    <img :src="require('../assets/feather/' + opts.skin + '/upload.svg')" alt="upload icon" width="16" height="16"/>
                 </a>
                 <a href="#" @click.prevent title="Rotate clockwise">
@@ -19,7 +19,7 @@
                 <a href="#" @click.prevent title="Flip vertically">
                    <img :src="require('../assets/feather/' + opts.skin + '/flip-vertical.svg')" alt="flip vertical icon" width="16" height="16"/>
                 </a>
-                <a href="#" @click.prevent title="Cancel">
+                <a href="#" @click.prevent="file = false" title="Cancel">
                    <img :src="require('../assets/feather/' + opts.skin + '/x-circle.svg')" alt="cancel icon" width="16" height="16"/>
                 </a>
                 <a href="#" @click.prevent title="Save">
@@ -27,8 +27,14 @@
                 </a>
             </div>
             <div v-if="file" class="ankaCropper__mainArea">
-                <div :style="{background: '#40496f', width: canvasWidth + 'px', height: canvasHeight + 'px', float: 'left'}"></div>
-                <div :style="{background: '#d14423', width: previewWidth + 'px', height: canvasHeight + 'px', float: 'left'}"></div>
+                <div :style="{background: '#40496f', width: cropperWidth + 'px', height: cropperHeight + 'px', float: 'left'}">
+                    <canvas
+                        ref="canvas"
+                        :width="canvasWidth"
+                        :height="canvasHeight"
+                        style="background: #ccc;"></canvas>
+                </div>
+                <div :style="{background: '#d14423', width: previewWidth + 'px', height: cropperHeight + 'px', float: 'left'}"></div>
             </div>
         </div>
     </div>
@@ -40,7 +46,6 @@ export default {
     data () {
         return {
             allowedMimeTypes: ['image/jpeg', 'image/png', 'image/gif'],
-            cropperWidth: 100,
             defaultOptions: {
                 cropperHeight: false,
                 dropareaMessage: 'Drop file here or use the button below.',
@@ -50,6 +55,7 @@ export default {
                 selectButtonLabel: 'Select Files',
                 skin: 'dark'
             },
+            fullWidth: 500, // width of whole ui
             file: false,
             image: false,
             imageWidth: 0,
@@ -67,66 +73,57 @@ export default {
         }
     },
     computed: {
-        opts () {
-            return Object.assign({}, this.defaultOptions, this.options)
+        canvasHeight () {
+            if (this.imageRatio <= this.cropperRatio) { return this.cropperHeight }
+            return Math.round(this.cropperWidth / this.imageRatio)
+        },
+        canvasWidth () {
+            if (this.imageRatio >= this.cropperRatio) { return this.cropperWidth }
+            return Math.round(this.imageRatio * this.canvasHeight)
+        },
+        cropperHeight () {
+            if (this.opts.cropperHeight && this.fullWidth > this.opts.layoutBreakpoint) { return this.opts.cropperHeight - 80 }
+            let calculatedHeight = Math.floor(this.cropperWidth / this.imageRatio)
+            let maxHeight = this.opts.maxCropperHeight
+            if (maxHeight && maxHeight > 100 && maxHeight < calculatedHeight) { return maxHeight - 80 }
+            return calculatedHeight
+        },
+        cropperRatio () {
+            return Math.round((this.cropperWidth / this.cropperHeight) * 1000) / 1000
+        },
+        cropperWidth () {
+            let mw = this.fullWidth - 24
+            if (this.fullWidth <= this.opts.layoutBreakpoint) return mw
+            return Math.floor(0.65 * mw)
         },
         imageRatio () {
             if (!this.imageHeight) return 0
             return Math.round((this.imageWidth / this.imageHeight) * 1000) / 1000
         },
-        canvasWidth () {
-            let mw = this.cropperWidth - 24
-            if (this.cropperWidth <= this.opts.layoutBreakpoint) return mw
-            return Math.floor(0.65 * mw)
-        },
-        canvasHeight () {
-            let calculatedHeight = Math.floor(this.canvasWidth / this.imageRatio)
-            let maxHeight = this.opts.maxCropperHeight
-            if (maxHeight && maxHeight > 100 && maxHeight < calculatedHeight) { return maxHeight - 80 }
-            return calculatedHeight
+        opts () {
+            return Object.assign({}, this.defaultOptions, this.options)
         },
         previewWidth () {
-            let mw = this.cropperWidth - 24
-            if (this.cropperWidth <= this.opts.layoutBreakpoint) return mw
+            let mw = this.fullWidth - 24
+            if (this.fullWidth <= this.opts.layoutBreakpoint) return mw
             return Math.floor(0.35 * mw)
         }
     },
     mounted () {
-        this.getCropperWidth()
-        window.addEventListener('resize', this.getCropperWidth)
+        this.getFullWidth()
+        window.addEventListener('resize', this.getFullWidth)
     },
     beforeDestroy () {
-        window.removeEventListener('resize', this.getCropperWidth)
+        window.removeEventListener('resize', this.getFullWidth)
     },
     methods: {
-        getCropperWidth () {
-            let elSize = this.$el.getBoundingClientRect()
-            this.cropperWidth = elSize.width
-        },
-        triggerInput () {
-            let input = this.$refs.fileInput
-            input.click()
-        },
-        selectFile (evt) {
-            let file = evt.currentTarget.files[0]
-            this.useFile(file)
-        },
         dropFile (evt) {
             let file = evt.dataTransfer.files[0]
             this.useFile(file)
         },
-        useFile (file) {
-            if (this.allowedMimeTypes.indexOf(file.type) === -1) {
-                this.$emit('cropper-error', 'Wrong file type: ' + file.type)
-                return
-            }
-            if (this.opts.maxFileSize && file.size > this.opts.maxFileSize) {
-                let fileSize = this.humanFileSize(file.size)
-                this.$emit('cropper-error', 'File too large (' + fileSize + ')! Max file size is ' + this.humanFileSize(this.opts.maxFileSize))
-                return
-            }
-            this.file = file
-            this.$emit('file-selected', file)
+        getFullWidth () {
+            let elSize = this.$el.getBoundingClientRect()
+            this.fullWidth = elSize.width
         },
         humanFileSize: function (bytes, si) {
             if (si === undefined) si = true
@@ -143,6 +140,27 @@ export default {
                 ++u
             } while (Math.abs(bytes) >= thresh && u < units.length - 1)
             return bytes.toFixed(1) + ' ' + units[u]
+        },
+        selectFile (evt) {
+            let file = evt.currentTarget.files[0]
+            this.useFile(file)
+        },
+        triggerInput () {
+            let input = this.$refs.fileInput
+            input.click()
+        },
+        useFile (file) {
+            if (this.allowedMimeTypes.indexOf(file.type) === -1) {
+                this.$emit('cropper-error', 'Wrong file type: ' + file.type)
+                return
+            }
+            if (this.opts.maxFileSize && file.size > this.opts.maxFileSize) {
+                let fileSize = this.humanFileSize(file.size)
+                this.$emit('cropper-error', 'File too large (' + fileSize + ')! Max file size is ' + this.humanFileSize(this.opts.maxFileSize))
+                return
+            }
+            this.file = file
+            this.$emit('file-selected', file)
         }
     },
     watch: {
@@ -157,10 +175,19 @@ export default {
                     this.image = img
                     this.loadingImage = false
                 }
-                img.onerror = () => {
+                img.onerror = (error) => {
                     this.loadingImage = false
+                    this.imageWidth = 0
+                    this.imageHeight = 0
+                    this.image = false
+                    this.file = false
+                    this.$emit('cropper-error', 'Image reading error' + error)
                 }
                 img.src = evt.target.result
+            }
+            reader.onerror = (error) => {
+                this.file = false
+                this.$emit('cropper-error', 'File reading error' + error)
             }
             if (nf) {
                 reader.readAsDataURL(this.file)
@@ -212,6 +239,7 @@ export default {
         margin: 20px 12px;
         box-sizing: border-box;
         overflow: hidden;
+        text-align: center;
     }
 
     /***************************/
