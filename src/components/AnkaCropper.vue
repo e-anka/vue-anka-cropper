@@ -27,7 +27,7 @@
                 </a>
             </div>
             <div v-if="file" class="ankaCropper__mainArea">
-                <div :style="{background: '#40496f', width: cropperWidth + 'px', height: cropperHeight + 'px', float: 'left'}">
+                <div :style="{width: cropperWidth + 'px', height: cropperHeight + 'px', float: 'left'}">
                     <canvas
                         ref="canvas"
                         :width="canvasWidth"
@@ -39,8 +39,8 @@
                         @mouseleave="stopDrag"
                         ></canvas>
                 </div>
-                <div v-if="opts.showPreview" class="ankaCropper__previewArea" :style="{background: '#d14423', width: prevdivWidth + 'px', height: prevdivHeight + 'px', float: 'left'}">
-                    <div :style="{background: '#ff9d00', width: previewSize.w + 'px', height: previewSize.h + 'px'}"></div>
+                <div v-if="opts.showPreview" class="ankaCropper__previewArea" :style="{width: prevdivWidth + 'px', height: prevdivHeight + 'px', float: 'left'}">
+                    <img :src="previewImage" :style="{width: previewSize.w + 'px', height: previewSize.h + 'px', borderRadius: opts.cropArea === 'circle' ? '50%' : 0}"></div>
                 </div>
             </div>
         </div>
@@ -113,6 +113,15 @@ export default {
             if (this.imageRatio >= this.cropperRatio) { return this.cropperWidth }
             return Math.round(this.imageRatio * this.canvasHeight)
         },
+        cropData () {
+            let scaleW = this.imageWidth / this.canvasWidth
+            let scaleH = this.imageHeight / this.canvasHeight
+            let nx = Math.round(this.x * scaleW)
+            let ny = Math.round(this.y * scaleH)
+            let nw = Math.round(this.w * scaleW)
+            let nh = Math.round(this.h * scaleH)
+            return {x: nx, y: ny, w: nw, h: nh}
+        },
         cropperHeight () {
             if (this.opts.cropperHeight && this.fullWidth > this.opts.layoutBreakpoint) { return this.opts.cropperHeight - 80 }
             let calculatedHeight = Math.floor(this.cropperWidth / this.imageRatio)
@@ -162,6 +171,31 @@ export default {
             let mw = this.fullWidth - 24
             if (this.fullWidth <= this.opts.layoutBreakpoint) return mw
             return Math.floor(0.35 * mw)
+        },
+        previewCanvas () {
+            if (!this.image) { return false }
+            let canvas = document.createElement('canvas')
+            canvas.width = this.previewSize.w
+            canvas.height = this.previewSize.h
+            let ctx = canvas.getContext('2d')
+            ctx.drawImage(
+                this.image,
+                this.cropData.x,
+                this.cropData.y,
+                this.cropData.w,
+                this.cropData.h,
+                0,
+                0,
+                canvas.width,
+                canvas.height)
+            return canvas
+        },
+        previewImage () {
+            if (this.previewCanvas) {
+                return this.previewCanvas.toDataURL('image/jpeg', 0.65)
+            } else {
+                return false
+            }
         },
         previewSize () {
             let [dw, dh] = [this.prevdivWidth - 20, this.prevdivHeight - 20]
@@ -535,6 +569,7 @@ export default {
     }
 
     .ankaCropper__navButton {
+        border-radius: 3px;
         display: inline-block;
         padding: 8px;
         width: 16px; height: 16px;
@@ -543,6 +578,7 @@ export default {
     }
 
     .ankaCropper__saveButton {
+        border-radius: 3px;
         float: right;
         padding: 8px 20px;
         display: inline-block;

@@ -3,7 +3,7 @@
     <!-- <img src="./assets/melkmeisje.jpg" alt=""/> -->
     <h1>Anka Image Cropper and (optionally) Uploader</h1>
     <AnkaCropper
-        :options="{aspectRatio: ar, cropArea: 'box', croppedWidth: desiredWidth, croppedHeight: desiredHeight}"
+        :options="{aspectRatio: ar, cropArea: 'box', croppedWidth: desiredWidth, croppedHeight: desiredHeight, showPreview: true}"
         @cropper-error="debug"
         @file-selected="debug"
         ></AnkaCropper>
@@ -21,8 +21,8 @@ export default {
     data () {
         return {
             ar: 1,
-            desiredWidth: 500,
-            desiredHeight: 500
+            desiredWidth: 100,
+            desiredHeight: 100
         }
     },
     methods: {
