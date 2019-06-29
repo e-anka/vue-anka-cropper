@@ -1,22 +1,17 @@
 <template>
     <div class="vueAnkaCropper">
         <div class="ankaCropper" :class="[opts.skin]">
-           <input type="file" class="ankaCropper__fileInput" ref="fileInput" v-show="false" @change="selectFile"/>
-            <div v-if="!file" class="ankaCropper__droparea" @drop.prevent="dropFile" @dragover.prevent>
-                <div>{{opts.dropareaMessage}}</div>
-                <button class="ankaCropper__selectButton" @click="triggerInput">{{opts.selectButtonLabel}}</button>
-            </div>
-            <div v-if="file" class="ankaCropper__navigation">
+            <div class="ankaCropper__navigation">
                 <a href="#" @click.prevent="triggerInput" title="Upload a new image" class="ankaCropper__navButton">
                    <img :src="require('../assets/feather/' + opts.skin + '/upload.svg')" alt="upload icon" width="16" height="16"/>
                 </a>
-                <a href="#" @click.prevent title="Rotate clockwise" class="ankaCropper__navButton">
+                <a href="#" @click.prevent="rotate" title="Rotate clockwise" class="ankaCropper__navButton">
                    <img :src="require('../assets/feather/' + opts.skin + '/rotate-cw.svg')" alt="rotate clockwise icon" width="16" height="16"/>
                 </a>
-                <a href="#" @click.prevent="fliph = !fliph; drawCanvas()" title="Flip horizontally" class="ankaCropper__navButton">
+                <a href="#" @click.prevent="flip('h')" title="Flip horizontally" class="ankaCropper__navButton">
                    <img :src="require('../assets/feather/' + opts.skin + '/flip-horizontal.svg')" alt="flip horizontal icon" width="16" height="16"/>
                 </a>
-                <a href="#" @click.prevent="flipv = !flipv; drawCanvas()" title="Flip vertically" class="ankaCropper__navButton">
+                <a href="#" @click.prevent="flip('v')" title="Flip vertically" class="ankaCropper__navButton">
                    <img :src="require('../assets/feather/' + opts.skin + '/flip-vertical.svg')" alt="flip vertical icon" width="16" height="16"/>
                 </a>
                 <a href="#" @click.prevent="cancelCrop" title="Cancel" class="ankaCropper__navButton">
@@ -25,6 +20,11 @@
                 <a href="#" @click.prevent title="Save" class="ankaCropper__saveButton">
                    <img :src="require('../assets/feather/' + opts.skin + '/save.svg')" alt="save icon" width="16" height="16"/> Save
                 </a>
+            </div>
+           <input type="file" class="ankaCropper__fileInput" ref="fileInput" v-show="false" @change="selectFile"/>
+            <div v-if="!file" class="ankaCropper__droparea" @drop.prevent="dropFile" @dragover.prevent>
+                <div>{{opts.dropareaMessage}}</div>
+                <button class="ankaCropper__selectButton" @click="triggerInput">{{opts.selectButtonLabel}}</button>
             </div>
             <div v-if="file" class="ankaCropper__mainArea">
                 <div :style="{width: cropperWidth + 'px', height: cropperHeight + 'px', float: 'left'}">
@@ -116,17 +116,55 @@ export default {
             return Math.round(this.imageRatio * this.canvasHeight)
         },
         cropData () {
-            let scaleW = this.imageWidth / this.canvasWidth
-            let scaleH = this.imageHeight / this.canvasHeight
-            let nx = Math.round(this.x * scaleW)
-            let ny = Math.round(this.y * scaleH)
-            let nw = Math.round(this.w * scaleW)
-            let nh = Math.round(this.h * scaleH)
-            if (this.fliph) {
-                nx = this.imageWidth - nx - nw
+            let scale = Math.round((this.imageWidth / this.canvasWidth + this.imageHeight / this.canvasHeight) / .002) / 1000
+            let [rot, fh, fv] = [this.rotation, this.fliph, this.flipv]
+            let x = this.x * scale
+            let y = this.y * scale
+            let w = this.w * scale
+            let h = this.h * scale
+            let a = this.imageWidth - x - w
+            let b = this.imageHeight - y - h
+
+            let nx, ny, nw, nh
+
+            if ((rot === 0 && !fh && !fv) || (rot === 180 && fh && fv)) {
+                nx = x
+                ny = y
             }
-            if (this.flipv) {
-                ny = this.imageHeight - ny - nh
+            if ((rot === 90 && !fh && !fv) || (rot === 270 && fh && fv)) {
+                nx = y
+                ny = a
+            }
+            if ((rot === 180 && !fh && !fv) || (rot === 0 && fh && fv)) {
+                nx = a
+                ny = b
+            }
+            if ((rot === 270 && !fh && !fv) || (rot === 90 && fh && fv)) {
+                nx = b
+                ny = x
+            }
+            if ((rot === 0 && fh && !fv) || (rot === 180 && !fh && fv)) {
+                nx = a
+                ny = y
+            }
+            if ((rot === 90 && fh && !fv) || (rot === 270 && !fh && fv)) {
+                nx = y
+                ny = x
+            }
+            if ((rot === 180 && fh && !fv) || (rot === 0 && !fh && fv)) {
+                nx = x
+                ny = b
+            }
+            if ((rot === 270 && fh && !fv) || (rot === 90 && !fh && fv)) {
+                nx = b
+                ny = a
+            }
+            if (rot === 0 || rot === 180) {
+                nw = w
+                nh = h
+            } else {
+                nw = h
+                nh = w
             }
             return {x: nx, y: ny, w: nw, h: nh}
         },
@@ -195,16 +233,21 @@ export default {
                 ctx.translate(0, this.previewSize.h);
                 ctx.scale(1, -1)
             }
+            let rotated = this.rotation === 90 || this.rotation === 270
+            let w = rotated ? canvas.height : canvas.width
+            let h = rotated ? canvas.width : canvas.height
+            ctx.translate(canvas.width / 2, canvas.height / 2)
+            ctx.rotate(this.rotation * Math.PI / 180)
             ctx.drawImage(
                 this.image,
                 this.cropData.x,
                 this.cropData.y,
                 this.cropData.w,
                 this.cropData.h,
-                0,
-                0,
-                canvas.width,
-                canvas.height)
+                -w / 2,
+                -h / 2,
+                w,
+                h)
             ctx.restore()
             return canvas
         },
@@ -283,7 +326,12 @@ export default {
                 this.ctx.translate(0, this.canvasHeight);
                 this.ctx.scale(1, -1)
             }
-            this.ctx.drawImage(this.image, 0, 0, this.canvasWidth, this.canvasHeight);
+            let rotated = this.rotation === 90 || this.rotation === 270
+            let w = rotated ? this.canvasHeight : this.canvasWidth
+            let h = rotated ? this.canvasWidth : this.canvasHeight
+            this.ctx.translate(this.canvasWidth / 2, this.canvasHeight / 2)
+            this.ctx.rotate(this.rotation * Math.PI / 180)
+            this.ctx.drawImage(this.image, -w / 2, -h / 2, w, h)
             this.ctx.restore()
         },
         drawMarkers () {
@@ -358,6 +406,16 @@ export default {
             let file = evt.dataTransfer.files[0]
             this.useFile(file)
         },
+        flip (direction) {
+            if (direction === 'v') {
+                this.flipv = !this.flipv
+                this.y = this.canvasHeight - this.y - this.h
+            } else {
+                this.fliph = !this.fliph
+                this.x = this.canvasWidth - this.x - this.w
+            }
+            this.drawCanvas()
+        },
         getFullWidth () {
             let elSize = this.$el.getBoundingClientRect()
             this.fullWidth = elSize.width
@@ -388,6 +446,34 @@ export default {
             this.mx = mx
             this.my = my
             this.drawCanvas()
+        },
+        rotate () {
+            let canvasSize = [this.canvasWidth, this.canvasHeight]
+            if (this.fliph ? !this.flipv : this.flipv) {
+                this.rotation -= 90
+            } else {
+                this.rotation += 90
+            }
+            if (this.rotation > 270) { this.rotation = 0 }
+            if (this.rotation < 0) {this.rotation = 270 }
+            let w = this.imageWidth
+            let h = this.imageHeight
+            this.imageWidth = h
+            this.imageHeight = w
+            this.$nextTick(() => {
+                let scaleX = this.canvasHeight / canvasSize[0]
+                let scaleY = this.canvasWidth / canvasSize[1]
+                let nx = this.canvasWidth - this.y * scaleY - this.h * scaleY
+                let ny = this.x * scaleX
+                let nw = this.h * scaleY * this.opts.aspectRatio
+                let nh = this.w * scaleX * this.opts.aspectRatio
+                this.x = Math.round(nx)
+                this.y = Math.round(ny)
+                this.w = Math.round(nw)
+                this.h = Math.round(nh)
+                this.updateCoords()
+                this.drawCanvas()
+            })
         },
         selectFile (evt) {
             let file = evt.currentTarget.files[0]
@@ -525,6 +611,8 @@ export default {
     watch: {
         file (nf) {
             this.rotation = 0
+            this.fliph = false
+            this.flipv = false
             let reader = new FileReader()
             reader.onload = (evt) => {
                 let img = new Image()
