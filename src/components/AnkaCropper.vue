@@ -46,22 +46,40 @@ export default {
     data () {
         return {
             allowedMimeTypes: ['image/jpeg', 'image/png', 'image/gif'],
+            canvas: false,
+            ctx: false,
             defaultOptions: {
+                aspectRatio: 0.5, // false or number, always width / height, locks aspect ratio of cropper. It should equal to croppedWidth / croppedHeight (if they're not false), otherwise cropped image will be distorted,
+                cropArea: 'box', // box or circle for round selections. If circle, aspect ratio will be locked to 1
+                croppedHeight: false, // desired height of cropped image (or false)
+                croppedWidth: false, // desired width of cropped image (or false). If aspectRatio is not false, cropped width and height should match the aspect ratio (width / height), otherwise cropped image will be distorted
                 cropperHeight: false,
                 dropareaMessage: 'Drop file here or use the button below.',
+                frameLineDash: [5,3], // dash pattern of the dashed line of the cropping frame
+                frameStrokeColor: 'rgba(255, 255, 255, 0.8)', // main color of the stroke of the cropping frame
+                handleFillColor: 'rgba(255, 255, 255, 0.2)',
+                handleHoverFillColor: 'red',
+                handleHoverStrokeColor: 'blue',
+                handleSize: 10, // size of the dragging handle in cropper
+                handleStrokeColor: 'rgba(255, 255, 255, 0.8)',
                 layoutBreakpoint: 950,
-                maxCropperHeight: 800,
+                maxCropperHeight: 600,
                 maxFileSize: 8000000,
+                overlayFill: 'rgba(0, 0, 0, 0.5)', // fill of the masking overlay
                 selectButtonLabel: 'Select Files',
                 skin: 'dark'
             },
             fullWidth: 500, // width of whole ui
             file: false,
+            h: 100,
             image: false,
             imageWidth: 0,
             imageHeight: 0,
             loadingImage: false,
-            rotation: 0
+            rotation: 0,
+            w: 100,
+            x: 20,
+            y: 20
         }
     },
     props: {
@@ -100,8 +118,18 @@ export default {
             if (!this.imageHeight) return 0
             return Math.round((this.imageWidth / this.imageHeight) * 1000) / 1000
         },
+        markers () {
+            return {
+                nw: {x: this.x - this.opts.handleSize, y: this.y - this.opts.handleSize},
+                ne: {x: this.x + this.w - this.opts.handleSize, y: this.y - this.opts.handleSize},
+                sw: {x: this.x - this.opts.handleSize, y: this.y + this.h - this.opts.handleSize},
+                se: {x: this.x + this.w - this.opts.handleSize, y: this.y + this.h - this.opts.handleSize}
+            }
+        },
         opts () {
-            return Object.assign({}, this.defaultOptions, this.options)
+            let opts = Object.assign({}, this.defaultOptions, this.options)
+            if (opts.cropArea === 'circle') opts.aspectRatio = 1
+            return opts
         },
         previewWidth () {
             let mw = this.fullWidth - 24
@@ -117,6 +145,80 @@ export default {
         window.removeEventListener('resize', this.getFullWidth)
     },
     methods: {
+        drawCanvas () {
+            if (!this.ctx) { return }
+            this.drawImageOnCanvas()
+            this.drawOverlay()
+            this.drawMarkers(0, 0)
+        },
+        drawImageOnCanvas () {
+            if (!this.image) { return }
+            this.ctx.drawImage(this.image, 0, 0, this.canvasWidth, this.canvasHeight);
+        },
+        drawMarkers (mouseX, mouseY) {
+            let ctx = this.ctx
+            this.canvas.style.cursor = 'default'
+            // draw selection border
+            ctx.beginPath()
+            if (this.opts.cropArea !== 'circle') {
+                ctx.rect(this.x, this.y, this.w, this.h)
+            } else {
+                ctx.arc(this.x + this.w / 2, this.y + this.h / 2, this.w / 2, 0, 2 * Math.PI)
+            }
+            if (ctx.isPointInPath(mouseX, mouseY)) {
+                this.canvas.style.cursor = 'move'
+            }
+            ctx.setLineDash(this.opts.frameLineDash)
+            ctx.strokeStyle = this.opts.frameStrokeColor
+            ctx.stroke()
+            // clear dash
+            ctx.setLineDash([])
+            // draw markers
+            for (let p in this.markers) {
+                let marker = this.markers[p]
+                ctx.beginPath()
+                ctx.rect(marker.x, marker.y, this.opts.handleSize * 2, this.opts.handleSize * 2)
+                ctx.fillStyle = this.opts.handleFillColor
+                ctx.strokeStyle = this.opts.handleStrokeColor
+                if (ctx.isPointInPath(mouseX, mouseY)) {
+                    ctx.fillStyle = this.opts.handleHoverFillColor
+                    ctx.strokeStyle = this.opts.handleHoverStrokeColor
+                    this.canvas.style.cursor = p + '-resize'
+                }
+                ctx.fill()
+                ctx.stroke()
+            }
+        },
+        drawOverlay () {
+            let ctx = this.ctx
+            ctx.fillStyle = this.opts.overlayFill
+            ctx.fillRect(0, 0, this.canvasWidth, this.y)
+            ctx.fillRect(0, this.y, this.x, this.h)
+            ctx.fillRect(this.x + this.w, this.y, this.canvasWidth - (this.x + this.w), this.h)
+            ctx.fillRect(0, this.y + this.h, this.canvasWidth, this.canvasHeight - (this.y + this.h))
+            if (this.opts.cropArea === 'circle') {
+                ctx.beginPath()
+                ctx.arc(this.x + this.w / 2, this.y + this.h / 2, this.w / 2, Math.PI, 1.5 * Math.PI)
+                ctx.lineTo(this.x, this.y)
+                ctx.closePath()
+                ctx.fill()
+                ctx.beginPath()
+                ctx.arc(this.x + this.w / 2, this.y + this.h / 2, this.w / 2, 1.5 * Math.PI, 2 * Math.PI)
+                ctx.lineTo(this.x + this.w, this.y)
+                ctx.closePath()
+                ctx.fill()
+                ctx.beginPath()
+                ctx.arc(this.x + this.w / 2, this.y + this.h / 2, this.w / 2, 0, 0.5 * Math.PI)
+                ctx.lineTo(this.x + this.w, this.y + this.h)
+                ctx.closePath()
+                ctx.fill()
+                ctx.beginPath()
+                ctx.arc(this.x + this.w / 2, this.y + this.h / 2, this.w / 2, 0.5 * Math.PI, Math.PI)
+                ctx.lineTo(this.x, this.y + this.h)
+                ctx.closePath()
+                ctx.fill()
+            }
+        },
         dropFile (evt) {
             let file = evt.dataTransfer.files[0]
             this.useFile(file)
@@ -124,6 +226,7 @@ export default {
         getFullWidth () {
             let elSize = this.$el.getBoundingClientRect()
             this.fullWidth = elSize.width
+            this.$nextTick(this.drawCanvas)
         },
         humanFileSize: function (bytes, si) {
             if (si === undefined) si = true
@@ -144,6 +247,27 @@ export default {
         selectFile (evt) {
             let file = evt.currentTarget.files[0]
             this.useFile(file)
+        },
+        startCanvas () {
+            if (this.image) {
+                this.canvas = this.$refs.canvas
+                this.ctx = this.canvas.getContext('2d')
+                let [ir, ar] = [this.imageRatio, this.opts.aspectRatio]
+                if (ar >= ir) {
+                    this.w = Math.round(this.canvasWidth / 2)
+                    this.h = Math.round(this.w / ar)
+                } else {
+                    this.h = Math.round(this.canvasHeight / 2)
+                    console.log('calcuc ', this.canvasHeight, this.h, ar)
+                    this.w = Math.round(this.h * ar)
+                }
+                this.x = Math.round((this.canvasWidth - this.w) / 2)
+                this.y = Math.round((this.canvasHeight - this.h) / 2)
+                this.drawCanvas()
+            } else {
+                this.canvas = false
+                this.ctx = false
+            }
         },
         triggerInput () {
             let input = this.$refs.fileInput
@@ -174,6 +298,7 @@ export default {
                     this.imageHeight = img.height
                     this.image = img
                     this.loadingImage = false
+                    this.$nextTick(this.startCanvas)
                 }
                 img.onerror = (error) => {
                     this.loadingImage = false
