@@ -1,7 +1,7 @@
 <template>
     <div class="vueAnkaCropper">
         <div class="ankaCropper" :class="[opts.skin]">
-            <div class="ankaCropper__navigation">
+           <div class="ankaCropper__navigation" v-if="file">
                 <a href="#" @click.prevent="triggerInput" title="Upload a new image" class="ankaCropper__navButton">
                    <img :src="require('../assets/feather/' + opts.skin + '/upload.svg')" alt="upload icon" width="16" height="16"/>
                 </a>
@@ -17,7 +17,7 @@
                 <a href="#" @click.prevent="cancelCrop" title="Cancel" class="ankaCropper__navButton">
                    <img :src="require('../assets/feather/' + opts.skin + '/x-circle.svg')" alt="cancel icon" width="16" height="16"/>
                 </a>
-                <a href="#" @click.prevent title="Save" class="ankaCropper__saveButton">
+                <a href="#" @click.prevent="doCrop" title="Save" class="ankaCropper__saveButton">
                    <img :src="require('../assets/feather/' + opts.skin + '/save.svg')" alt="save icon" width="16" height="16"/> Save
                 </a>
             </div>
@@ -40,7 +40,7 @@
                         ></canvas>
                 </div>
                 <div v-if="opts.showPreview" class="ankaCropper__previewArea" :style="{width: prevdivWidth + 'px', height: prevdivHeight + 'px', float: 'left'}">
-                    <img :src="previewImage" :style="{width: previewSize.w + 'px', height: previewSize.h + 'px', borderRadius: opts.cropArea === 'circle' ? '50%' : 0}"></div>
+                    <img :src="previewImage" :style="{width: previewSize.w + 'px', height: previewSize.h + 'px', borderRadius: opts.cropArea === 'circle' ? '50%' : 0}">
                 </div>
             </div>
         </div>
@@ -56,10 +56,11 @@ export default {
             canvas: false,
             ctx: false,
             defaultOptions: {
-                aspectRatio: 1.5, // false or number, always width / height, locks aspect ratio of cropper. It should equal to croppedWidth / croppedHeight (if they're not false), otherwise cropped image will be distorted,
+                aspectRatio: 1.5, // false or number, always width / height, locks aspect ratio of cropper. It should equal to croppedWidth / croppedHeight
+                closeOnSave: true,
                 cropArea: 'circle', // box or circle for round selections. If circle, aspect ratio will be locked to 1
                 croppedHeight: 500, // desired height of cropped image (or false)
-                croppedWidth: 500, // desired width of cropped image (or false). If aspectRatio is not false, cropped width and height should match the aspect ratio (width / height), otherwise cropped image will be distorted
+                croppedWidth: 500, // desired width of cropped image (or false)
                 cropperHeight: false,
                 dropareaMessage: 'Drop file here or use the button below.',
                 frameLineDash: [5,3], // dash pattern of the dashed line of the cropping frame
@@ -73,9 +74,15 @@ export default {
                 maxCropperHeight: 600,
                 maxFileSize: 8000000,
                 overlayFill: 'rgba(0, 0, 0, 0.5)', // fill of the masking overlay
+                previewOnDrag: false,
+                previewQuality: 0.65,
+                resultQuality: 0.8,
+                resultMimeType: 'image/jpeg',
                 selectButtonLabel: 'Select Files',
                 showPreview: true,
-                skin: 'dark'
+                skin: 'dark',
+                uploadData: {}, // additional upload data, such as user id or whatever
+                uploadTo: false
             },
             dragged: false,
             fullWidth: 500, // width of whole ui
@@ -86,12 +93,13 @@ export default {
             image: false,
             imageWidth: 0,
             imageHeight: 0,
+            loadingImage: false,
             minW: 8, // minimum dimensions of the cropping window
             minH: 8, // minimum dimensions of the cropping window
             mx: 0,
             my: 0,
             over: false,
-            loadingImage: false,
+            previewImage: false,
             rotation: 0,
             w: 100,
             x: 20,
@@ -219,10 +227,33 @@ export default {
             return Math.floor(0.35 * mw)
         },
         previewCanvas () {
-            if (!this.image) { return false }
+            if (!this.image || !this.resultCanvas) { return false }
             let canvas = document.createElement('canvas')
             canvas.width = this.previewSize.w
             canvas.height = this.previewSize.h
+            let ctx = canvas.getContext('2d')
+            ctx.drawImage(this.resultCanvas, 0, 0, canvas.width, canvas.height)
+            return canvas
+        },
+        previewSize () {
+            let [dw, dh] = [this.prevdivWidth - 20, this.prevdivHeight - 20]
+            let pdratio = Math.round((dw / dh) * 1000) / 1000
+            let resratio = Math.round((this.resultWidth / this.resultHeight) * 1000) / 1000
+            let pw, ph
+            if (resratio > pdratio) {
+                pw = dw
+                ph = dw / resratio
+            } else {
+                ph = dh
+                pw = ph * resratio
+            }
+            return {w: Math.min(pw, this.resultWidth), h: Math.min(ph, this.resultHeight)}
+        },
+        resultCanvas () {
+            if (!this.image) { return false }
+            let canvas = document.createElement('canvas')
+            canvas.width = this.resultWidth
+            canvas.height = this.resultHeight
             let ctx = canvas.getContext('2d')
             ctx.save()
             if (this.fliph) {
@@ -251,32 +282,11 @@ export default {
             ctx.restore()
             return canvas
         },
-        previewImage () {
-            if (this.previewCanvas) {
-                return this.previewCanvas.toDataURL('image/jpeg', 0.65)
-            } else {
-                return false
-            }
-        },
-        previewSize () {
-            let [dw, dh] = [this.prevdivWidth - 20, this.prevdivHeight - 20]
-            let pdratio = Math.round((dw / dh) * 1000) / 1000
-            let resratio = Math.round((this.resultWidth / this.resultHeight) * 1000) / 1000
-            let pw, ph
-            if (resratio > pdratio) {
-                pw = dw
-                ph = dw / resratio
-            } else {
-                ph = dh
-                pw = ph * resratio
-            }
-            return {w: Math.min(pw, this.resultWidth), h: Math.min(ph, this.resultHeight)}
-        },
         resultWidth () {
             let [ar, cw, ch] = [this.opts.aspectRatio, this.opts.croppedWidth, this.opts.croppedHeight]
             let imageFactor = Math.round((this.imageWidth / this.canvasWidth) * 1000) / 1000
             let ratio = ar ? ar : this.w / this.h
-            if (cw && !(!ar && ch)) { return cw }
+            if (cw && !ch) { return cw }
             if (!cw && !ch) { return Math.round(this.w * imageFactor) }
             if (!cw && ch) { return Math.round(ch * ratio) }
             let resultRatio = cw / ch
@@ -287,7 +297,7 @@ export default {
             let [ar, cw, ch] = [this.opts.aspectRatio, this.opts.croppedWidth, this.opts.croppedHeight]
             let imageFactor = Math.round((this.imageHeight / this.canvasHeight) * 1000) / 1000
             let ratio = ar ? ar : this.w / this.h
-            if (ch && !(!ar && cw)) { return ch }
+            if (ch && !cw) { return ch }
             if (!cw && !ch) { return Math.round(this.h * imageFactor) }
             if (!ch && cw) { return Math.round(cw / ratio) }
             let resultRatio = cw / ch
@@ -308,12 +318,59 @@ export default {
             input.type = ''
             input.type = 'file'
             this.file = false
+            this.$emit('cropper-cancelled')
+        },
+        doCrop () {
+            let resultImage = this.resultCanvas.toDataURL(this.opts.resultMimeType, this.opts.resultQuality)
+
+            let n = this.file.name.lastIndexOf('.')
+            let fname = this.file.name.substring(0, n)
+
+            let finalData = {
+                originalFile: this.file,
+                filename: fname,
+                rotation: this.rotation,
+                cropCoords: this.cropData,
+                flippedH: this.fliph,
+                flippedV: this.flipv,
+                croppedImageURI: resultImage
+            }
+
+            let resultBlob = this.resultCanvas.toBlob((blob) => {
+                let nd = new Date()
+                blob.lastModified = nd.getTime()
+                blob.lastModifiedDate = nd
+                blob.name = fname
+                finalData.croppedFile = blob
+                this.$emit('cropper-saved', finalData)
+                if (this.opts.uploadTo) {
+                    let formData = new FormData()
+                    for (let p in finalData) {
+                        formData.append(p, finalData[p])
+                    }
+                    for (let m in this.opts.uploadData) {
+                        formData.append(m, this.opts.uploadData[m])
+                    }
+                    axios.post(this.opts.uploadTo, formData)
+                        .then((response) => {
+                            this.$emit('cropper-uploaded', response)
+                            if (this.opts.closeOnSave) {
+                                this.file = false
+                            }
+                        })
+                } else if (this.opts.closeOnSave) {
+                    this.file = false
+                }
+            }, this.opts.resultMimeType, this.opts.resultQuality)
         },
         drawCanvas () {
             if (!this.ctx) { return }
             this.drawImageOnCanvas()
             this.drawOverlay()
             this.drawMarkers()
+            if (this.opts.showPreview && this.opts.previewOnDrag && this.previewCanvas) {
+                this.previewImage = this.previewCanvas.toDataURL('image/jpeg', this.opts.previewQuality)
+            }
         },
         drawImageOnCanvas () {
             if (!this.image) { return }
@@ -415,6 +472,9 @@ export default {
                 this.x = this.canvasWidth - this.x - this.w
             }
             this.drawCanvas()
+            if (this.opts.showPreview && !this.opts.previewOnDrag && this.previewCanvas) {
+                this.previewImage = this.previewCanvas.toDataURL('image/jpeg', this.opts.previewQuality)
+            }
         },
         getFullWidth () {
             let elSize = this.$el.getBoundingClientRect()
@@ -473,6 +533,9 @@ export default {
                 this.h = Math.round(nh)
                 this.updateCoords()
                 this.drawCanvas()
+                if (this.opts.showPreview && !this.opts.previewOnDrag && this.previewCanvas) {
+                    this.previewImage = this.previewCanvas.toDataURL('image/jpeg', this.opts.previewQuality)
+                }
             })
         },
         selectFile (evt) {
@@ -498,12 +561,20 @@ export default {
                 this.canvas = false
                 this.ctx = false
             }
+            if (this.opts.showPreview && this.previewCanvas) {
+                this.previewImage = this.previewCanvas.toDataURL('image/jpeg', this.opts.previewQuality)
+            }
         },
         startDrag () {
             this.dragged = this.over
         },
         stopDrag () {
             this.dragged = false
+            let preview = this.resultCanvas.toDataURL('image/jpeg', this.opts.previewQuality)
+            this.$emit('cropper-preview', preview)
+            if (this.opts.showPreview && this.previewCanvas) {
+                this.previewImage = this.previewCanvas.toDataURL('image/jpeg', this.opts.previewQuality)
+            }
         },
         triggerInput () {
             let input = this.$refs.fileInput
@@ -605,7 +676,7 @@ export default {
                 return
             }
             this.file = file
-            this.$emit('file-selected', file)
+            this.$emit('cropper-file-selected', file)
         }
     },
     watch: {
