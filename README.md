@@ -1,29 +1,6 @@
 # anka-cropper
 
-## Project setup
-```
-npm install
-```
+## Work in Progress
 
-### Compiles and hot-reloads for development
-```
-npm run serve
-```
+This is going to be a vue component for cropping images (yes, another one!). The code right now is fully functional and working, but I have a hard time figuring out vue-cli 3 settings for creating a nice bundle and publishing it with npm. I should be able to sort it out within a week.
 
-### Compiles and minifies for production
-```
-npm run build
-```
-
-### Run your tests
-```
-npm run test
-```
-
-### Lints and fixes files
-```
-npm run lint
-```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
