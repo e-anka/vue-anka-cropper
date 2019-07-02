@@ -3,22 +3,22 @@
         <div class="ankaCropper" :class="[opts.skin]">
            <div class="ankaCropper__navigation" v-if="file">
                 <a href="#" @click.prevent="triggerInput" title="Upload a new image" class="ankaCropper__navButton">
-                   <img :src="require('../assets/feather/' + opts.skin + '/upload.svg')" alt="upload icon" width="16" height="16"/>
+                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0c55f0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-upload"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                 </a>
                 <a href="#" @click.prevent="rotate" title="Rotate clockwise" class="ankaCropper__navButton">
-                   <img :src="require('../assets/feather/' + opts.skin + '/rotate-cw.svg')" alt="rotate clockwise icon" width="16" height="16"/>
+                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0c55f0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rotate-cw"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
                 </a>
                 <a href="#" @click.prevent="flip('h')" title="Flip horizontally" class="ankaCropper__navButton">
-                   <img :src="require('../assets/feather/' + opts.skin + '/flip-horizontal.svg')" alt="flip horizontal icon" width="16" height="16"/>
+                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0c55f0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <path style="fill:none" d="M 9.7148438,2.8183594 1.8203125,18 c -0.7648346,1.324499 0.1796183,2.982419 1.7089844,3 h 6.1855469 z m 4.5703122,0 V 21 h 6.185547 c 1.529366,-0.01758 2.47382,-1.675501 1.708985,-3 z" id="path2"/></svg>
                 </a>
                 <a href="#" @click.prevent="flip('v')" title="Flip vertically" class="ankaCropper__navButton">
-                   <img :src="require('../assets/feather/' + opts.skin + '/flip-vertical.svg')" alt="flip vertical icon" width="16" height="16"/>
+                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0c55f0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <path style="fill:none" d="M 21.090975,9.7148433 5.9093341,1.820312 c -1.324499,-0.7648346 -2.982419,0.1796183 -3,1.7089844 v 6.1855469 z m 0,4.5703127 H 2.9093341 v 6.185547 c 0.01758,1.529366 1.675501,2.47382 3,1.708985 z" id="path2"/></svg>
                 </a>
                 <a href="#" @click.prevent="cancelCrop" title="Cancel" class="ankaCropper__navButton">
-                   <img :src="require('../assets/feather/' + opts.skin + '/x-circle.svg')" alt="cancel icon" width="16" height="16"/>
+                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0c55f0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x-circle"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
                 </a>
                 <a href="#" @click.prevent="doCrop" title="Save" class="ankaCropper__saveButton">
-                   <img :src="require('../assets/feather/' + opts.skin + '/save.svg')" alt="save icon" width="16" height="16"/> Save
+                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-save"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Save
                 </a>
             </div>
            <input type="file" class="ankaCropper__fileInput" ref="fileInput" v-show="false" @change="selectFile"/>
@@ -336,7 +336,7 @@ export default {
                 croppedImageURI: resultImage
             }
 
-            let resultBlob = this.resultCanvas.toBlob((blob) => {
+            this.resultCanvas.toBlob((blob) => {
                 let nd = new Date()
                 blob.lastModified = nd.getTime()
                 blob.lastModifiedDate = nd
@@ -728,6 +728,8 @@ export default {
         box-shadow: 0 0 20px rgba(0, 0, 0, 0.1), 3px 3px 5px rgba(0, 0, 0, 0.3);
         position: relative;
         overflow: hidden;
+        font-family: Avenir, Helvetica, 'Helvetica Neue', Arial, sans-serif;
+        font-size: 16px;
         a {
             text-decoration: none;
         }
@@ -771,7 +773,7 @@ export default {
         height: 16px;
         box-shadow: 0 0 4px rgba(0, 0, 0, 0.15), 1px 1px 2px rgba(0, 0, 0, 0.25);
         font-size: 14px;
-        img {
+        svg {
             vertical-align: bottom;
         }
     }
@@ -808,6 +810,9 @@ export default {
         .ankaCropper__navigation {
             background: #e8f2fa;
         }
+        .ankaCropper__navButton {
+            svg { stroke: #0f1114; }
+        }
         .ankaCropper__navButton:hover {
             background: #fff;
         }
@@ -830,6 +835,7 @@ export default {
         }
         .ankaCropper__navButton {
             background: #272c31;
+            svg { stroke: #eee; }
             &:hover {
                 background: #000;
             }
