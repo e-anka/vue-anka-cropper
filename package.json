@@ -1,12 +1,18 @@
 {
-  "name": "anka-cropper",
+  "name": "vue-anka-cropper",
   "version": "0.1.0",
-  "private": true,
+  "description": "Easy to use image cropper and uploader",
+  "author": "eAnka <eankadesign@gmail.com>",
+  "license": "MIT License",
+  "main" : "./dist/VueAnkaCropper.umd.js",
+  "unpkg" : "./dist/VueAnkaCropper.umd.min.js",
+  "private": false,
+  "homepage": "https://github.com/e-anka/vue-anka-cropper",
   "scripts": {
     "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build",
+    "build-demo": "vue-cli-service build --dest demo",
     "lint": "vue-cli-service lint",
-    "build-bundle": "vue-cli-service build --target lib --name vue-anka-cropper src/components/AnkaCropper.vue"
+    "build": "vue-cli-service build --target lib --name VueAnkaCropper ./src/components/VueAnkaCropper.vue"
   },
   "dependencies": {
     "core-js": "^2.6.5",
