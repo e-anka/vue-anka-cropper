@@ -39,7 +39,7 @@
                         @mousemove="moveMouse"
                         @mousedown="startDrag"
                         @mouseup="stopDrag"
-                        @mouseleave="stopDrag"
+                        @mouseleave="dragged = false"
                         ></canvas>
                 </div>
                 <div v-if="opts.showPreview" class="ankaCropper__previewArea" :style="{width: prevdivWidth + 'px', height: prevdivHeight + 'px', float: 'left'}">
