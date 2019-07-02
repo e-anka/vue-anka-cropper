@@ -59,11 +59,11 @@ export default {
             canvas: false,
             ctx: false,
             defaultOptions: {
-                aspectRatio: 1.5, // false or number, always width / height, locks aspect ratio of cropper. It should equal to croppedWidth / croppedHeight
+                aspectRatio: 1, // false or number, always width / height, locks aspect ratio of cropper. It should equal to croppedWidth / croppedHeight
                 closeOnSave: true,
-                cropArea: 'circle', // box or circle for round selections. If circle, aspect ratio will be locked to 1
-                croppedHeight: 500, // desired height of cropped image (or false)
-                croppedWidth: 500, // desired width of cropped image (or false)
+                cropArea: 'box', // box or circle for round selections. If circle, aspect ratio will be locked to 1
+                croppedHeight: 400, // desired height of cropped image (or false)
+                croppedWidth: 400, // desired width of cropped image (or false)
                 cropperHeight: false,
                 dropareaMessage: 'Drop file here or use the button below.',
                 frameLineDash: [5,3], // dash pattern of the dashed line of the cropping frame
@@ -73,11 +73,11 @@ export default {
                 handleHoverStrokeColor: 'rgba(255, 255, 255, 1)',
                 handleSize: 10, // size of the dragging handle in cropper
                 handleStrokeColor: 'rgba(255, 255, 255, 0.8)',
-                layoutBreakpoint: 950,
-                maxCropperHeight: 600,
-                maxFileSize: 8000000,
+                layoutBreakpoint: 850,
+                maxCropperHeight: 768,
+                maxFileSize: 8000000, // 8MB
                 overlayFill: 'rgba(0, 0, 0, 0.5)', // fill of the masking overlay
-                previewOnDrag: false,
+                previewOnDrag: true,
                 previewQuality: 0.65,
                 resultQuality: 0.8,
                 resultMimeType: 'image/jpeg',
@@ -221,8 +221,7 @@ export default {
         },
         prevdivHeight () {
             if (this.fullWidth > this.opts.layoutBreakpoint) return this.cropperHeight
-            if (!this.opts.aspectRatio) return this.canvasHeight
-            return this.prevdivWidth / this.opts.aspectRatio
+            return 300
         },
         prevdivWidth () {
             let mw = this.fullWidth - 24
@@ -550,7 +549,10 @@ export default {
                 this.canvas = this.$refs.canvas
                 this.ctx = this.canvas.getContext('2d')
                 let [ir, ar] = [this.imageRatio, this.opts.aspectRatio]
-                if (ar >= ir) {
+                if (!ar) {
+                    this.w = Math.round(this.canvasWidth / 2)
+                    this.h = Math.round(this.canvasHeight / 2)
+                } else if (ar >= ir) {
                     this.w = Math.round(this.canvasWidth / 2)
                     this.h = Math.round(this.w / ar)
                 } else {
@@ -782,7 +784,7 @@ export default {
     }
 
     .ankaCropper__mainArea {
-        margin: 20px 12px;
+        margin: 12px;
         box-sizing: border-box;
         overflow: hidden;
         text-align: center;
