@@ -5,7 +5,10 @@
                 <a href="#" @click.prevent="triggerInput" title="Upload a new image" class="ankaCropper__navButton">
                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0c55f0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-upload"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                 </a>
-                <a href="#" @click.prevent="rotate" title="Rotate clockwise" class="ankaCropper__navButton">
+                <a href="#" @click.prevent="rotate(-90)" title="Rotate counterclockwise" class="ankaCropper__navButton">
+                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="0c55f0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rotate-ccw"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+                </a>
+                <a href="#" @click.prevent="rotate(90)" title="Rotate clockwise" class="ankaCropper__navButton">
                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0c55f0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rotate-cw"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
                 </a>
                 <a href="#" @click.prevent="flip('h')" title="Flip horizontally" class="ankaCropper__navButton">
@@ -507,12 +510,12 @@ export default {
             this.my = my
             this.drawCanvas()
         },
-        rotate () {
+        rotate (delta) {
             let canvasSize = [this.canvasWidth, this.canvasHeight]
             if (this.fliph ? !this.flipv : this.flipv) {
-                this.rotation -= 90
+                this.rotation -= delta
             } else {
-                this.rotation += 90
+                this.rotation += delta
             }
             if (this.rotation > 270) { this.rotation = 0 }
             if (this.rotation < 0) {this.rotation = 270 }
