@@ -1,13 +1,23 @@
 {
   "name": "vue-anka-cropper",
   "version": "0.1.0",
-  "description": "Easy to use image cropper and uploader",
-  "author": "eAnka <eankadesign@gmail.com>",
+  "description": "Easy to use image cropper and uploader component for Vue.js. Beta version.",
+  "author": "Joanna Betlej <eankadesign@gmail.com> (https://eanka.com)",
   "license": "MIT License",
-  "main" : "./dist/VueAnkaCropper.umd.js",
+  "keywords": ["Vue", "Vue.js", "vuejs", "image", "crop", "cropper", "uploader", "image cropper", "crop image", "image uploader", "cropping", "circular cropping", "circle crop", "avatar cropping"],
+  "main" : "./dist/VueAnkaCropper.umd.min.js",
   "unpkg" : "./dist/VueAnkaCropper.umd.min.js",
   "private": false,
-  "homepage": "https://github.com/e-anka/vue-anka-cropper",
+   "files": [
+    "dist/VueAnkaCropper.common.js",
+    "dist/VueAnkaCropper.common.js.map",
+    "dist/VueAnkaCropper.css",
+    "dist/VueAnkaCropper.umd.js",
+    "dist/VueAnkaCropper.umd.js.map",
+    "dist/VueAnkaCropper.umd.min.js",
+    "dist/VueAnkaCropper.umd.min.js.map"
+  ],
+  "repository": "https://github.com/e-anka/vue-anka-cropper",
   "scripts": {
     "serve": "vue-cli-service serve",
     "build-demo": "vue-cli-service build --dest demo",
