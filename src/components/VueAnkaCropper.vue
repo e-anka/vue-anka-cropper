@@ -81,9 +81,9 @@ export default {
                 previewQuality: 0.65,
                 resultQuality: 0.8,
                 resultMimeType: 'image/jpeg',
-                selectButtonLabel: 'Select Files',
+                selectButtonLabel: 'Select File',
                 showPreview: true,
-                skin: 'dark',
+                skin: 'light',
                 uploadData: {}, // additional upload data, such as user id or whatever
                 uploadTo: false
             },
