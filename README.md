@@ -135,12 +135,14 @@ export default {
 ## Events
 | Event | Payload | Description |
 |-----------------------|---------|---------------------------------------------------------------------------------------------|
+| cropper-mounted | - | Fires when cropper is mounted |
 | cropper-error | string | Fires on any file reading error, returns an error message. |
 | cropper-file-selected | file | Emitted after user selected a file and it has been recognized as a valid image file.  |
 | cropper-preview | dataURI | Fires when user stops dragging the cropping handle and returns image src as DataURI string. |
 | cropper-saved | object | Fires when user clicked save button, returns an object described below. |
 | cropper-cancelled | - | Fires when user cancels cropping. |
 | cropper-uploaded | object | Fires after cropped image has been uploaded, and returns the response from server. |
+| cropper-before-destroy | - | Fires before destroying cropper |
 
 ### Response object
 
@@ -161,7 +163,7 @@ Options allow adding fixed ratio as well as width and height of the image. This 
 
 ## Creating Your Own Skin
 
-Right now only two skins exist, light and dark. However, if you will use any other string as skin name, it will be added to the cropper outer element. Then you can edit the css adding your skin rules.Please find the css of the dark skin below, use it as a skeleton for your skin (change "dark" to your skin name)
+Right now only two skins exist, light and dark. However, if you will use any other string as skin name, it will be added to the cropper outer element as a class. Then you can edit the css adding your skin rules.Please find the css of the dark skin below, use it as a skeleton for your skin (change "dark" to your skin name)
 ```css
 .ankaCropper.dark {
     background: #0f1114;

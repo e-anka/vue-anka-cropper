@@ -309,9 +309,11 @@ export default {
     },
     mounted () {
         this.getFullWidth()
+        this.$emit('cropper-mounted')
         window.addEventListener('resize', this.getFullWidth)
     },
     beforeDestroy () {
+        this.$emit('cropper-before-destroy')
         window.removeEventListener('resize', this.getFullWidth)
     },
     methods: {
