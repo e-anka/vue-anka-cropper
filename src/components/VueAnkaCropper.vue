@@ -545,6 +545,7 @@ export default {
         selectFile (evt) {
             let file = evt.currentTarget.files[0]
             if (file) { this.useFile(file) }
+            this.getFullWidth()
         },
         startCanvas () {
             if (this.image) {
