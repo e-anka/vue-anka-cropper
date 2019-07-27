@@ -1,6 +1,9 @@
 // vue.config.js
 module.exports = {
     devServer: {
-        proxy: 'http://localhost/anka-cropper/'
-        }
+        proxy: 'http://localhost/vue-anka-cropper/'
+        },
+    publicPath: process.env.NODE_ENV === 'production'
+    ? '/vue-anka-cropper/'
+    : '/vue-anka-cropper/docs/'
 }
