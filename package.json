@@ -20,7 +20,7 @@
   "repository": "https://github.com/e-anka/vue-anka-cropper",
   "scripts": {
     "serve": "vue-cli-service serve",
-    "build-demo": "vue-cli-service build --dest demo",
+    "build-demo": "vue-cli-service build --dest docs",
     "lint": "vue-cli-service lint",
     "build": "vue-cli-service build --target lib --name VueAnkaCropper ./src/components/VueAnkaCropper.vue"
   },
