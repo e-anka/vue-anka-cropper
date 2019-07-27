@@ -4,6 +4,6 @@ module.exports = {
         proxy: 'http://localhost/vue-anka-cropper/'
         },
     publicPath: process.env.NODE_ENV === 'production'
-    ? '/vue-anka-cropper/'
-    : '/vue-anka-cropper/docs/'
+    ? '/vue-anka-cropper/docs/'
+    : '/vue-anka-cropper/'
 }
