@@ -1,6 +1,9 @@
 <template>
   <div id="app">
     <h1>Vue Anka Image Cropper and (optionally) Uploader</h1>
+    <div style="text-align: center">
+        <a href="https://github.com/e-anka/vue-anka-cropper" target="_blank">View on Github</a>
+    </div>
     <div class="row">
         <div class="options">
             <h2>Options</h2>
@@ -99,7 +102,7 @@
                 </select>
             </div>
             <h3>Disabled</h3>
-            <p>The below options are disabled, because there's no way to use them on github, but you can use them in your code</p>
+            <p>Options below are disabled, because there's no way to use them on github, but you can use them in your code</p>
             <div class="form-group">
                 <label for="maxFileSize">Max file size (in bytes)</label>
                 <input type="text" id="maxFileSize" v-model="maxFileSize" disabled>
@@ -119,6 +122,10 @@
             <div class="form-group">
                 <label for="uploadTo">Upload to</label>
                 <input type="text" id="uploadTo" v-model="upl" disabled>
+            </div>
+            <div class="form-group">
+                <span>Upload data</span>
+                <p>An object, holding any data you'd like to upload together with cropped image.</p>
             </div>
         </div>
         <div class="cropper">
