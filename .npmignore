@@ -4,6 +4,7 @@ node_modules
 /tmp
 /public
 /api
+/docs
 
 # local env files
 .env.local

@@ -1,7 +1,7 @@
 # vue-anka-cropper
 > An easy image cropper and (optionally) uploader component for vue.js
 
-Please note it's an early version. Documentation is under construction, no demo yet.
+[vue-anka-cropper Demo](https://e-anka.github.io/vue-anka-cropper/).
 
 ## Installation
 
