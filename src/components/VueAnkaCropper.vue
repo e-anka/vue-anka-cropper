@@ -502,8 +502,8 @@ export default {
             return bytes.toFixed(1) + ' ' + units[u]
         },
         moveMouse (evt) {
-            let mx = evt.clientX
-            let my = evt.clientY
+            let mx = evt.clientX || evt.touches[0].clientX
+            let my = evt.clientY || evt.touches[0].clientY
             let dx = mx - this.mx
             let dy = my - this.my
             if (this.dragged) { this.updateCoords(dx, dy) }
@@ -572,8 +572,26 @@ export default {
             if (this.opts.showPreview && this.previewCanvas) {
                 this.previewImage = this.previewCanvas.toDataURL('image/jpeg', this.opts.previewQuality)
             }
+
+            this.canvas.addEventListener("touchstart", (e) => {
+                e.preventDefault()
+                this.startDrag(e)
+            })
+            this.canvas.addEventListener("touchend", (e) => {
+                e.preventDefault()
+                this.stopDrag(e)
+            })
+            this.canvas.addEventListener("touchmove", (e) => {
+                e.preventDefault();
+                this.moveMouse(e)
+            })
         },
-        startDrag () {
+        startDrag (e) {
+            if (e.touches !== undefined ) {
+                this.mx = e.touches[0].clientX
+                this.my = e.touches[0].clientY
+                this.drawCanvas()
+            }
             this.dragged = this.over
         },
         stopDrag () {
