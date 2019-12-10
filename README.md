@@ -206,7 +206,7 @@ Right now only two skins exist, light and dark. However, if you will use any oth
 ## RoadMap
 
 1. Revise the code, make it smaller. Remove some calculations, as this should be done with css.
-2. Add touch support
+2. ~~Add touch support~~ Added!
 3. Watch options and update on change.
 
 
